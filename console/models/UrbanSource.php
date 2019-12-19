@@ -71,4 +71,9 @@ class UrbanSource extends \yii\db\ActiveRecord
     {
         return $this->hasOne(UrbanSourceType::class, ['id' => 'urban_source_type_id']);
     }
+    
+    public function fields()
+    {
+        return parent::fields();
+    }
 }

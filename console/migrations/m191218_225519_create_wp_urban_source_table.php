@@ -29,6 +29,7 @@ class m191218_225519_create_wp_urban_source_table extends Migration
             'urban_source_type_id' => $this->integer()->notNull(),
             'created_at' => $this->integer()->notNull(),
             'updated_at' => $this->integer()->notNull(),
+            'active' => $this->boolean()->notNull()->defaultValue(true),
         ], $tableOptions);
 
         // creates index for column `urban_source_type_id`
