@@ -41,3 +41,13 @@ phpunit.phar
 /backend/web/index.php
 /backend/web/index-test.php
 /backend/web/robots.txt
+/backend/config/codeception-local.php
+/frontend/config/codeception-local.php
+/backend/config/main-local.php
+/frontend/config/main-local.php
+/backend/config/main-local.php.bak
+/frontend/config/main-local.php.bak
+/backend/config/params-local.php
+/frontend/config/params-local.php
+/backend/config/test-local.php
+/frontend/config/test-local.php
