@@ -62,7 +62,7 @@ class Post extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['post_content', 'post_date'], 'required'],
+            [['post_title', 'post_content', 'post_date'], 'required'],
             
             [['post_author', 'post_parent', 'menu_order', 'comment_count'], 'integer'],
             

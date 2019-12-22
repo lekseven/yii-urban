@@ -16,6 +16,10 @@ class VkController extends Controller
     
     const MAX_COUNT = 5;
     
+    const WALL_POST_URL = 'https://vk.com/wall';
+    
+    const TITLE_LENGTH = 54;
+    
     private $accessToken;
     
     public function __construct($id, $module, $config = [])
@@ -70,16 +74,26 @@ class VkController extends Controller
                 }
     
                 $post = new Post();
-                $post->post_content = $item['text'];
-                $post->post_date = date(\Yii::$app->formatter->datetimeFormat, $item['date']);
-    
-                if (isset($item['copy_history'])) {
+                
+                // TODO: нужна более лучшая и полная логика извлечения контента
+                if ($item['text']) {
+                    $post->post_title = mb_substr($item['text'], 0, self::TITLE_LENGTH);
+                    $post->post_content = $item['text'];
+                    $post->post_date = date(\Yii::$app->formatter->datetimeFormat, $item['date']);
+                } elseif (!empty($item['copy_history'])) {
                     $copyHistory = reset($item['copy_history']);
-                    
+                    $post->post_title = mb_substr($copyHistory['text'], 0, self::TITLE_LENGTH);
                     $post->post_content = $copyHistory['text'];
                     $post->post_date = date(\Yii::$app->formatter->datetimeFormat, $item['date']);
+                }/* elseif (!empty($item['attachments'][0]['link'])) {
+                    $itemLink = $item['attachments'][0]['link'];
+                }*/
+                
+                if (!$post->post_content) {
+                    continue;
                 }
-    
+                
+                $post->post_content .= "\n" . self::WALL_POST_URL . "{$item['owner_id']}_{$item['id']}";
                 $post->post_modified = date(\Yii::$app->formatter->datetimeFormat, time());
                 if ($post->save()) {
                     $this->stdout("Новый пост: id='{$item['id']}' date='{$post->post_date}' "
@@ -104,6 +118,8 @@ class VkController extends Controller
             $this->stdout("Пауза $pause сек.\n", Console::BOLD, Console::FG_YELLOW);
             sleep($pause);
         }
+    
+        $this->stdout("Завершено.\n", Console::BOLD, Console::FG_YELLOW);
         
         return ExitCode::OK;
     }
