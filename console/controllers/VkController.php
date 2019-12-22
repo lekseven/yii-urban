@@ -41,14 +41,16 @@ class VkController extends Controller
         /** @var UrbanSource[] $urbanSources */
         $urbanSources = UrbanSource::find()->where(['urban_source_type_id' => $sourceType->id])->all();
         foreach ($urbanSources as $urbanSource) {
-            $this->stdout("Источник: {$urbanSource->short_name} [{$sourceType->name}]",
+            $domain = str_replace('https://vk.com/', '', $urbanSource->url);
+            
+            $this->stdout("Источник: {$domain} [{$sourceType->name}]",
                 Console::BOLD, Console::BG_CYAN);
             echo PHP_EOL;
             
             $response = null;
             try {
                 $response = $vk->wall()->get($this->accessToken, [
-                    'domain' => $urbanSource->short_name,
+                    'domain' => $domain,
                     'filter' => 'owner',
                 ]);
             } catch (\Exception $exception) {

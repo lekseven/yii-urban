@@ -6,6 +6,7 @@ use app\models\UrbanSource;
 use console\models\UrbanSourceType;
 use yii\console\Controller;
 use yii\console\ExitCode;
+use yii\helpers\Console;
 
 class SourceController extends Controller
 {
@@ -31,8 +32,30 @@ class SourceController extends Controller
         return ExitCode::OK;
     }
     
-    public final function actionAdd(string $url, string $sourceType): int
+    public final function actionAdd(string $url, string $sourceTypeName): int
     {
+        $sourceType = UrbanSourceType::findOne(['name' => $sourceTypeName]);
+        if (!$sourceType) {
+            $this->stderr("Неизвестный тип источника: $sourceTypeName\n",
+                Console::FG_RED, Console::BOLD);
+            
+            return ExitCode::IOERR;
+        }
+        
+        $source = new UrbanSource();
+        $source->url = $url;
+        $source->urban_source_type_id = $sourceType->id;
+        if (!$source->save()) {
+            $this->stderr("Возникла ошибка при добавлении источника.\n", Console::BOLD, Console::FG_RED);
+            foreach ($source->getErrorSummary(true) as $message) {
+                $this->stderr($message . PHP_EOL, Console::BOLD, Console::FG_RED);
+            }
+            
+            return ExitCode::DATAERR;
+        }
+        
+        $this->stdout("Источник успешно добавлен.\n", Console::FG_GREEN, Console::BOLD);
+        
         return ExitCode::OK;
     }
     

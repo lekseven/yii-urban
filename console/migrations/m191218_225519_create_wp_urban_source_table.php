@@ -24,7 +24,6 @@ class m191218_225519_create_wp_urban_source_table extends Migration
         $this->createTable('{{%wp_urban_source}}', [
             'id' => $this->primaryKey(),
             'url' => $this->string()->notNull()->unique(),
-            'short_name' => $this->string()->notNull(),
             'latest_record' => $this->string(),
             'urban_source_type_id' => $this->integer()->notNull(),
             'created_at' => $this->integer()->notNull(),

@@ -10,13 +10,12 @@ use yii\behaviors\TimestampBehavior;
  *
  * @property int $id
  * @property string $url
- * @property string $short_name
  * @property string|null $latest_record
  * @property int $urban_source_type_id
  * @property int $created_at
  * @property int $updated_at
  *
- * @property UrbanSource $urbanSourceType
+ * @property UrbanSourceType $urbanSourceType
  */
 class UrbanSource extends \yii\db\ActiveRecord
 {
@@ -43,8 +42,10 @@ class UrbanSource extends \yii\db\ActiveRecord
         return [
             [['url', 'urban_source_type_id'], 'required'],
             [['urban_source_type_id'], 'integer'],
-            [['url', 'latest_record', 'short_name'], 'string', 'max' => 255],
-            [['urban_source_type_id'], 'exist', 'skipOnError' => true, 'targetClass' => UrbanSourceType::class, 'targetAttribute' => ['urban_source_type_id' => 'id']],
+            [['url', 'latest_record'], 'string', 'max' => 255],
+            ['url', 'url', 'defaultScheme' => 'http'],
+            [['urban_source_type_id'], 'exist', 'skipOnError' => true, 'targetClass' => UrbanSourceType::class,
+             'targetAttribute' => ['urban_source_type_id' => 'id']],
         ];
     }
 
@@ -56,7 +57,6 @@ class UrbanSource extends \yii\db\ActiveRecord
         return [
             'id' => 'ID',
             'url' => 'Url',
-            'short_name' => 'Short Name',
             'latest_record' => 'Latest Record',
             'urban_source_type_id' => 'Urban Source Type ID',
             'created_at' => 'Created At',

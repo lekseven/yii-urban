@@ -52,7 +52,6 @@ class SeedController extends Controller
             $source = new UrbanSource();
             $source->url = $url;
             $source->urban_source_type_id = $sourceType->id;
-            $source->short_name = str_replace('https://vk.com/', '', $url);
             try {
                 if ($source->save()) {
                     echo "Source $url was added\n";
