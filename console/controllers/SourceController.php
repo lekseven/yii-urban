@@ -8,12 +8,28 @@ use yii\console\Controller;
 use yii\console\ExitCode;
 use yii\helpers\Console;
 
+
+/**
+ * Управление источниками
+ *
+ * Class SourceController
+ * @package console\controllers
+ */
 class SourceController extends Controller
 {
+    /**
+     * Показать все источники или только источники указанного типа
+     *
+     * @param string|null $sourceTypeName
+     * @return int
+     */
     public final function actionIndex(?string $sourceTypeName = null): int
     {
         if ($sourceTypeName) {
             $sourceType = UrbanSourceType::findOne(['name' => $sourceTypeName]);
+    
+            $this->stdout("Источники: {$sourceType->name}", Console::BOLD, Console::BG_CYAN);
+            echo PHP_EOL;
         }
         
         // TODO: сделать возврат частями
@@ -32,6 +48,13 @@ class SourceController extends Controller
         return ExitCode::OK;
     }
     
+    /**
+     * Добавить источник
+     *
+     * @param string $url
+     * @param string $sourceTypeName
+     * @return int
+     */
     public final function actionAdd(string $url, string $sourceTypeName): int
     {
         $sourceType = UrbanSourceType::findOne(['name' => $sourceTypeName]);
@@ -59,28 +82,89 @@ class SourceController extends Controller
         return ExitCode::OK;
     }
     
+    /**
+     * Удалить источник
+     *
+     * @param int $id
+     * @return int
+     * @throws \Throwable
+     * @throws \yii\db\StaleObjectException
+     */
     public final function actionRemove(int $id): int
     {
+        $source = UrbanSource::findOne($id);
+        if (!$source) {
+            $this->stdout("Источник id=$id не найден.\n", Console::BOLD, Console::FG_RED);
+    
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+    
+        // TODO: Add confirmation before removing
+        if (!$source->delete()) {
+            $this->stderr("Возникла ошибка при удалении источника.\n", Console::BOLD, Console::FG_RED);
+            foreach ($source->getErrorSummary(true) as $message) {
+                $this->stderr($message . PHP_EOL, Console::BOLD, Console::FG_RED);
+            }
+        
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+    
+        $this->stdout("Источник id=$id удален.\n", Console::FG_GREEN, Console::BOLD);
+    
         return ExitCode::OK;
     }
     
-    public final function actionReset(?int $id): int
+    /**
+     * Сбросить сохраненные данные источника
+     *
+     * @param int $id
+     */
+    public final function actionReset(int $id): void
     {
-        return ExitCode::OK;
+        UrbanSource::updateAll(['latest_record' => null], ['id' => $id]);
     }
     
+    /**
+     * Сбросить сохраненные данные всех источников
+     */
     public final function actionResetAll(): void
     {
         UrbanSource::updateAll(['latest_record' => null]);
     }
     
+    /**
+     * Включить источник
+     *
+     * @param int $id
+     * @return int
+     */
     public final function actionEnable(int $id): int
     {
+        $result = UrbanSource::updateAll(['active' => true], ['id' => $id]);
+        if (!$result) {
+            $this->stdout("Источник не найден: id=$id\n", Console::BOLD, Console::FG_RED);
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+    
+        $this->stdout("Источник включен: id=$id\n");
         return ExitCode::OK;
     }
     
+    /**
+     * Выключить источник
+     *
+     * @param int $id
+     * @return int
+     */
     public final function actionDisable(int $id): int
     {
+        $result = UrbanSource::updateAll(['active' => false], ['id' => $id]);
+        if (!$result) {
+            $this->stdout("Источник не найден: id=$id\n", Console::BOLD, Console::FG_RED);
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+    
+        $this->stdout("Источник выключен: id=$id\n");
         return ExitCode::OK;
     }
 }

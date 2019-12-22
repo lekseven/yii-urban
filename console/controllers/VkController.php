@@ -6,10 +6,17 @@ use app\models\UrbanSource;
 use console\models\Post;
 use console\models\UrbanSourceType;
 use VK\Client\VKApiClient;
+use yii\base\Module;
 use yii\console\Controller;
 use yii\console\ExitCode;
 use yii\helpers\Console;
 
+/**
+ * Управление парсером VK
+ *
+ * Class VkController
+ * @package console\controllers
+ */
 class VkController extends Controller
 {
     const SOURCE_TYPE = 'vk';
@@ -22,7 +29,13 @@ class VkController extends Controller
     
     private $accessToken;
     
-    public function __construct($id, $module, $config = [])
+    /**
+     * VkController constructor.
+     * @param string $id
+     * @param Module $module
+     * @param array $config
+     */
+    public function __construct(string $id, Module $module, array $config = [])
     {
         $this->accessToken = \Yii::$app->params[self::SOURCE_TYPE]['accessToken'] ?? null;
         if (!$this->accessToken) {
@@ -33,6 +46,11 @@ class VkController extends Controller
         parent::__construct($id, $module, $config);
     }
     
+    /**
+     * Получить новые посты
+     *
+     * @return int
+     */
     public final function actionIndex(): int
     {
         $vk = new VKApiClient();
