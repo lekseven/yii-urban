@@ -2,12 +2,17 @@
 
 namespace console\controllers;
 
+use app\models\TermRelationship;
 use app\models\UrbanSource;
 use console\models\Post;
+use console\models\Term;
+use console\models\TermTaxonomy;
 use console\models\UrbanSourceType;
 use VK\Client\VKApiClient;
+use yii\base\InvalidArgumentException;
 use yii\base\Module;
 use yii\console\Controller;
+use yii\console\Exception;
 use yii\console\ExitCode;
 use yii\helpers\Console;
 
@@ -26,6 +31,8 @@ class VkController extends Controller
     const WALL_POST_URL = 'https://vk.com/wall';
     
     const TITLE_LENGTH = 54;
+    
+    const WP_TAG_TAXONOMY = 'post_tag';
     
     private $accessToken;
     
@@ -54,6 +61,8 @@ class VkController extends Controller
     public final function actionIndex(): int
     {
         $vk = new VKApiClient();
+        
+        $vkTag = $this->getPostTag(self::SOURCE_TYPE);
         
         $sourceType = UrbanSourceType::findOne(['name' => self::SOURCE_TYPE]);
         /** @var UrbanSource[] $urbanSources */
@@ -116,6 +125,9 @@ class VkController extends Controller
                 $post->post_content .= "\n" . self::WALL_POST_URL . "{$item['owner_id']}_{$item['id']}";
                 $post->post_modified = date(\Yii::$app->formatter->datetimeFormat, time());
                 if ($post->save()) {
+                    $this->addTag($post, $vkTag);
+                    $this->addTag($post, $domain);
+                    
                     $this->stdout("Новый пост: id='{$item['id']}' date='{$post->post_date}' "
                         . "\"" . mb_substr($post->post_content, 0, 50) . "...\"" . PHP_EOL);
         
@@ -142,5 +154,56 @@ class VkController extends Controller
         $this->stdout("Завершено.\n", Console::BOLD, Console::FG_YELLOW);
         
         return ExitCode::OK;
+    }
+    
+    /**
+     * @param string $tagName
+     * @return TermTaxonomy
+     * @throws Exception
+     */
+    private function getPostTag(string $tagName): TermTaxonomy
+    {
+        $term = Term::findOne(['name' => $tagName]);
+        if (!$term) {
+            $term = new Term();
+            $term->name = $tagName;
+            if (!$term->save()) {
+                throw new Exception();
+            }
+            
+            $taxonomy = new TermTaxonomy();
+            $taxonomy->term_id = $term->term_id;
+            $taxonomy->taxonomy = self::WP_TAG_TAXONOMY;
+            if (!$taxonomy->save()) {
+                throw new Exception();
+            }
+            
+            return $taxonomy;
+        }
+        
+        return TermTaxonomy::findOne(['term_id' => $term->term_id, 'taxonomy' => self::WP_TAG_TAXONOMY]);
+    }
+    
+    /**
+     * @param Post $post
+     * @param TermTaxonomy|string $tag
+     * @throws Exception
+     */
+    private function addTag(Post $post, $tag): void
+    {
+        if ($tag instanceof TermTaxonomy) {
+            $termTaxonomy = $tag;
+        } elseif (is_string($tag)) {
+            $termTaxonomy = $this->getPostTag($tag);
+        } else {
+            throw new InvalidArgumentException();
+        }
+        
+        $termRelationship = new TermRelationship();
+        $termRelationship->object_id = $post->ID;
+        $termRelationship->term_taxonomy_id = $termTaxonomy->term_taxonomy_id;
+        if (!$termRelationship->save()) {
+            throw new Exception();
+        }
     }
 }
