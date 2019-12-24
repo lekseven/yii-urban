@@ -2,6 +2,7 @@
 
 namespace console\models;
 
+use yii\base\Exception;
 use yii\db\ActiveQuery;
 
 /**
@@ -18,6 +19,8 @@ use yii\db\ActiveQuery;
  */
 class TermTaxonomy extends \yii\db\ActiveRecord
 {
+    const WP_POST_TAG = 'post_tag';
+    
     /**
      * {@inheritdoc}
      */
@@ -59,5 +62,33 @@ class TermTaxonomy extends \yii\db\ActiveRecord
     public function getTerm(): ActiveQuery
     {
         return $this->hasOne(Term::class, ['term_id' => 'term_id']);
+    }
+    
+    /**
+     * @param string $termName
+     * @return TermTaxonomy
+     * @throws Exception
+     */
+    public static function findOrCreate(string $termName): TermTaxonomy
+    {
+        $term = Term::findOne(['name' => $termName]);
+        if (!$term) {
+            $term = new Term();
+            $term->name = $termName;
+            if (!$term->save()) {
+                throw new Exception();
+            }
+            
+            $taxonomy = new TermTaxonomy();
+            $taxonomy->term_id = $term->term_id;
+            $taxonomy->taxonomy = TermTaxonomy::WP_POST_TAG;
+            if (!$taxonomy->save()) {
+                throw new Exception();
+            }
+            
+            return $taxonomy;
+        }
+        
+        return TermTaxonomy::findOne(['term_id' => $term->term_id, 'taxonomy' => TermTaxonomy::WP_POST_TAG]);
     }
 }

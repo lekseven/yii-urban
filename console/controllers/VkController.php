@@ -2,17 +2,13 @@
 
 namespace console\controllers;
 
-use app\models\TermRelationship;
 use app\models\UrbanSource;
 use console\models\Post;
-use console\models\Term;
 use console\models\TermTaxonomy;
 use console\models\UrbanSourceType;
 use VK\Client\VKApiClient;
-use yii\base\InvalidArgumentException;
 use yii\base\Module;
 use yii\console\Controller;
-use yii\console\Exception;
 use yii\console\ExitCode;
 use yii\helpers\Console;
 
@@ -26,13 +22,13 @@ class VkController extends Controller
 {
     const SOURCE_TYPE = 'vk';
     
-    const MAX_COUNT = 5;
-    
-    const WALL_POST_URL = 'https://vk.com/wall';
+    const URL_VK_WALL = 'https://vk.com/wall';
+    const URL_VK_HOME = 'https://vk.com/';
     
     const TITLE_LENGTH = 54;
     
-    const WP_TAG_TAXONOMY = 'post_tag';
+    // Кол-во дней, в рамках которых выполняется поиск новых записей
+    const MIN_DATE = 5;
     
     private $accessToken;
     
@@ -57,18 +53,25 @@ class VkController extends Controller
      * Получить новые посты
      *
      * @return int
+     * @throws \yii\base\Exception
      */
     public final function actionIndex(): int
     {
         $vk = new VKApiClient();
         
-        $vkTag = $this->getPostTag(self::SOURCE_TYPE);
+        $vkTag = TermTaxonomy::findOrCreate(self::SOURCE_TYPE);
+        
+        $period = \Yii::$app->params['period'] ?? self::MIN_DATE;
+        $minDate = strtotime("-$period days");
         
         $sourceType = UrbanSourceType::findOne(['name' => self::SOURCE_TYPE]);
         /** @var UrbanSource[] $urbanSources */
-        $urbanSources = UrbanSource::find()->where(['urban_source_type_id' => $sourceType->id])->all();
+        $urbanSources = UrbanSource::findAll([
+            'urban_source_type_id' => $sourceType->id,
+            'active' => 1,
+        ]);
         foreach ($urbanSources as $urbanSource) {
-            $domain = str_replace('https://vk.com/', '', $urbanSource->url);
+            $domain = str_replace(self::URL_VK_HOME, '', $urbanSource->url);
             
             $this->stdout("Источник: {$domain} [{$sourceType->name}]",
                 Console::BOLD, Console::BG_CYAN);
@@ -93,50 +96,33 @@ class VkController extends Controller
                 continue;
             }
 
-            foreach ($response['items'] as $index => $item) {
+            foreach ($response['items'] as $item) {
                 if (!empty($item['is_pinned']) || !empty($item['marked_as_ads'])) {
                     continue;
                 }
     
-                if ($item['date'] == $urbanSource->latest_record || ($index + 1) > self::MAX_COUNT) {
+                if ($item['date'] == $urbanSource->latest_record || $item['date'] < $minDate) {
                     break;
                 }
     
                 $post = new Post();
-                
-                // TODO: нужна более лучшая и полная логика извлечения контента
-                if ($item['text']) {
-                    $post->post_title = mb_substr($item['text'], 0, self::TITLE_LENGTH);
-                    $post->post_content = $item['text'];
-                    $post->post_date = date(\Yii::$app->formatter->datetimeFormat, $item['date']);
-                } elseif (!empty($item['copy_history'])) {
-                    $copyHistory = reset($item['copy_history']);
-                    $post->post_title = mb_substr($copyHistory['text'], 0, self::TITLE_LENGTH);
-                    $post->post_content = $copyHistory['text'];
-                    $post->post_date = date(\Yii::$app->formatter->datetimeFormat, $item['date']);
-                }/* elseif (!empty($item['attachments'][0]['link'])) {
-                    $itemLink = $item['attachments'][0]['link'];
-                }*/
+                $this->fillPostData($post, $item);
                 
                 if (!$post->post_content) {
                     continue;
                 }
                 
-                $post->post_content .= "\n" . self::WALL_POST_URL . "{$item['owner_id']}_{$item['id']}";
+                $post->post_content .= "\n\n" . self::URL_VK_WALL . "{$item['owner_id']}_{$item['id']}";
                 $post->post_modified = date(\Yii::$app->formatter->datetimeFormat, time());
+                
                 if ($post->save()) {
-                    $this->addTag($post, $vkTag);
-                    $this->addTag($post, $domain);
+                    $post->addTag($vkTag);
+                    $post->addTag($domain);
+                    
+                    $this->updateLatestRecord($urbanSource, $item['date']);
                     
                     $this->stdout("Новый пост: id='{$item['id']}' date='{$post->post_date}' "
                         . "\"" . mb_substr($post->post_content, 0, 50) . "...\"" . PHP_EOL);
-        
-                    // latest_record stores timestamp (as a string) in case of VK source
-                    $latestRecordTimestamp = (int) $urbanSource->latest_record;
-                    if ($latestRecordTimestamp < $item['date']) {
-                        $urbanSource->latest_record = (string) $item['date'];
-                    }
-                    $urbanSource->save();
                 } else {
                     echo "Item:\n";
                     $this->stderr(print_r($item, true), Console::BOLD, Console::FG_RED);
@@ -157,53 +143,33 @@ class VkController extends Controller
     }
     
     /**
-     * @param string $tagName
-     * @return TermTaxonomy
-     * @throws Exception
+     * @param UrbanSource $urbanSource
+     * @param int $date
      */
-    private function getPostTag(string $tagName): TermTaxonomy
+    private function updateLatestRecord(UrbanSource $urbanSource, int $date): void
     {
-        $term = Term::findOne(['name' => $tagName]);
-        if (!$term) {
-            $term = new Term();
-            $term->name = $tagName;
-            if (!$term->save()) {
-                throw new Exception();
-            }
-            
-            $taxonomy = new TermTaxonomy();
-            $taxonomy->term_id = $term->term_id;
-            $taxonomy->taxonomy = self::WP_TAG_TAXONOMY;
-            if (!$taxonomy->save()) {
-                throw new Exception();
-            }
-            
-            return $taxonomy;
+        // latest_record stores timestamp (as a string) in case of VK source
+        $latestRecordTimestamp = (int) $urbanSource->latest_record;
+        if ($latestRecordTimestamp < $date) {
+            $urbanSource->latest_record = (string) $date;
         }
-        
-        return TermTaxonomy::findOne(['term_id' => $term->term_id, 'taxonomy' => self::WP_TAG_TAXONOMY]);
+        $urbanSource->save();
     }
     
-    /**
-     * @param Post $post
-     * @param TermTaxonomy|string $tag
-     * @throws Exception
-     */
-    private function addTag(Post $post, $tag): void
+    private function fillPostData(Post $post, array $item): void
     {
-        if ($tag instanceof TermTaxonomy) {
-            $termTaxonomy = $tag;
-        } elseif (is_string($tag)) {
-            $termTaxonomy = $this->getPostTag($tag);
-        } else {
-            throw new InvalidArgumentException();
-        }
-        
-        $termRelationship = new TermRelationship();
-        $termRelationship->object_id = $post->ID;
-        $termRelationship->term_taxonomy_id = $termTaxonomy->term_taxonomy_id;
-        if (!$termRelationship->save()) {
-            throw new Exception();
-        }
+        // TODO: нужна более лучшая и полная логика извлечения контента (ТЗ)
+        if ($item['text']) {
+            $post->post_title = mb_substr($item['text'], 0, self::TITLE_LENGTH);
+            $post->post_content = $item['text'];
+            $post->post_date = date(\Yii::$app->formatter->datetimeFormat, $item['date']);
+        } elseif (!empty($item['copy_history'])) {
+            $copyHistory = reset($item['copy_history']);
+            $post->post_title = mb_substr($copyHistory['text'], 0, self::TITLE_LENGTH);
+            $post->post_content = $copyHistory['text'];
+            $post->post_date = date(\Yii::$app->formatter->datetimeFormat, $item['date']);
+        }/* elseif (!empty($item['attachments'][0]['link'])) {
+            $itemLink = $item['attachments'][0]['link'];
+        }*/
     }
 }

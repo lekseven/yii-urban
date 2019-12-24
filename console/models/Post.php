@@ -2,7 +2,10 @@
 
 namespace console\models;
 
+use app\models\TermRelationship;
 use Yii;
+use yii\base\Exception;
+use yii\base\InvalidArgumentException;
 use yii\behaviors\TimestampBehavior;
 
 /**
@@ -115,5 +118,28 @@ class Post extends \yii\db\ActiveRecord
             'post_mime_type' => 'Post Mime Type',
             'comment_count' => 'Comment Count',
         ];
+    }
+    
+    /**
+     * @param TermTaxonomy|string $tag
+     * @throws Exception
+     * @throws \yii\base\Exception
+     */
+    public function addTag($tag): void
+    {
+        if ($tag instanceof TermTaxonomy) {
+            $termTaxonomy = $tag;
+        } elseif (is_string($tag)) {
+            $termTaxonomy = TermTaxonomy::findOrCreate($tag);
+        } else {
+            throw new InvalidArgumentException();
+        }
+    
+        $termRelationship = new TermRelationship();
+        $termRelationship->object_id = $this->ID;
+        $termRelationship->term_taxonomy_id = $termTaxonomy->term_taxonomy_id;
+        if (!$termRelationship->save()) {
+            throw new Exception();
+        }
     }
 }
