@@ -51,3 +51,5 @@ phpunit.phar
 /frontend/config/params-local.php
 /backend/config/test-local.php
 /frontend/config/test-local.php
+
+.composer
