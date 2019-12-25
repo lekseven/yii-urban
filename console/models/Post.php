@@ -2,7 +2,6 @@
 
 namespace console\models;
 
-use app\models\TermRelationship;
 use Yii;
 use yii\base\Exception;
 use yii\base\InvalidArgumentException;

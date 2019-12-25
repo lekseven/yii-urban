@@ -1,8 +1,7 @@
 <?php
 
-namespace app\models;
+namespace console\models;
 
-use console\models\TermTaxonomy;
 use yii\db\ActiveQuery;
 
 /**

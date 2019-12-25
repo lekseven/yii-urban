@@ -2,7 +2,7 @@
 
 namespace console\controllers;
 
-use app\models\UrbanSource;
+use console\models\UrbanSource;
 use console\models\UrbanSourceType;
 use yii\console\Controller;
 use yii\console\ExitCode;

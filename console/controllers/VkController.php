@@ -2,9 +2,9 @@
 
 namespace console\controllers;
 
-use app\models\UrbanSource;
 use console\models\Post;
 use console\models\TermTaxonomy;
+use console\models\UrbanSource;
 use console\models\UrbanSourceType;
 use VK\Client\VKApiClient;
 use yii\base\Module;
@@ -95,13 +95,14 @@ class VkController extends Controller
                 
                 continue;
             }
-
+            
+            $latestRecord = $urbanSource->latest_record;
             foreach ($response['items'] as $item) {
                 if (!empty($item['is_pinned']) || !empty($item['marked_as_ads'])) {
                     continue;
                 }
     
-                if ($item['date'] == $urbanSource->latest_record || $item['date'] < $minDate) {
+                if ($item['date'] <= $latestRecord || $item['date'] < $minDate) {
                     break;
                 }
     
