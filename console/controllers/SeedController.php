@@ -6,7 +6,7 @@ use console\models\UrbanSource;
 use console\models\UrbanSourceType;
 use yii\console\Controller;
 use yii\console\ExitCode;
-use yii\db\IntegrityException;
+use yii\db\Exception;
 
 class SeedController extends Controller
 {
@@ -20,14 +20,15 @@ class SeedController extends Controller
             'medium',
             'telegram',
             'zen',
+            'rss',
         ];
         
-        UrbanSourceType::deleteAll();
-        
         foreach ($sources as $sourceName) {
-            $sourceType = new UrbanSourceType();
-            $sourceType->name = $sourceName;
-            $sourceType->save();
+            if (!UrbanSourceType::find()->where(['name' => $sourceName])->exists()) {
+                $sourceType = new UrbanSourceType();
+                $sourceType->name = $sourceName;
+                $sourceType->save();
+            }
         }
         
         return ExitCode::OK;
@@ -35,29 +36,38 @@ class SeedController extends Controller
     
     public function actionSources()
     {
-        $fileContent = file_get_contents(__DIR__ . '/../../vk_groups.txt');
-        if (!$fileContent) {
-            echo 'File is empty';
-            return ExitCode::UNSPECIFIED_ERROR;
-        }
+        $sourceFiles = [
+            'vk' => 'vk_groups.txt',
+            'rss' => 'rss.txt',
+        ];
     
-        $sourceType = UrbanSourceType::findOne(['name' => 'vk']);
-        if (!$sourceType) {
-            echo 'No source type found';
-            return ExitCode::UNSPECIFIED_ERROR;
-        }
+        foreach ($sourceFiles as $sourceTypeName => $sourceFile) {
+            $fileContent = file_get_contents(__DIR__ . "/../../$sourceFile");
+            if (!$fileContent) {
+                echo "File $sourceFile is empty. Skipping.\n";
+                continue;
+            }
     
-        $vkGroupUrls = explode("\n", $fileContent);
-        foreach ($vkGroupUrls as $url) {
-            $source = new UrbanSource();
-            $source->url = $url;
-            $source->urban_source_type_id = $sourceType->id;
-            try {
-                if ($source->save()) {
-                    echo "Source $url was added\n";
+            $sourceType = UrbanSourceType::findOne(['name' => $sourceTypeName]);
+            if (!$sourceType) {
+                echo "No source type $sourceTypeName found. Skipping.\n";
+                continue;
+            }
+    
+            $urls = explode("\n", $fileContent);
+            foreach ($urls as $url) {
+                if (!UrbanSource::find()->where(['url' => $url])->exists()) {
+                    $source = new UrbanSource();
+                    $source->url = $url;
+                    $source->urban_source_type_id = $sourceType->id;
+                    try {
+                        if ($source->save()) {
+                            echo "Source $url was added\n";
+                        }
+                    } catch (Exception $exception) {
+                        echo $exception->getMessage() . "\n";
+                    }
                 }
-            } catch (IntegrityException $exception) {
-                echo $exception->getMessage() . "\n";
             }
         }
         
