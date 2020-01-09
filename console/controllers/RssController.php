@@ -69,7 +69,7 @@ class RssController extends Controller
                     $urbanSource->updateLatestRecord($itemPubDate);
     
                     $this->stdout("Новый пост: id='{$item->link}' date='{$post->post_date}' "
-                        . "\"" . mb_substr($post->post_content, 0, 50) . "...\"" . PHP_EOL);
+                        . "\"{$post->post_title}...\"" . PHP_EOL);
                 } else {
                     echo "Item:\n";
                     $this->stderr(print_r($item, true), Console::BOLD, Console::FG_RED);

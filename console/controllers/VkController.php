@@ -123,7 +123,7 @@ class VkController extends Controller
                     $urbanSource->updateLatestRecord($item['date']);
                     
                     $this->stdout("Новый пост: id='{$item['id']}' date='{$post->post_date}' "
-                        . "\"" . mb_substr($post->post_content, 0, 50) . "...\"" . PHP_EOL);
+                        . "\"{$post->post_title}...\"" . PHP_EOL);
                 } else {
                     echo "Item:\n";
                     $this->stderr(print_r($item, true), Console::BOLD, Console::FG_RED);
