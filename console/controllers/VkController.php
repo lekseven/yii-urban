@@ -6,6 +6,7 @@ use console\models\Post;
 use console\models\TermTaxonomy;
 use console\models\UrbanSource;
 use console\models\UrbanSourceType;
+use console\models\VkUrbanSource;
 use VK\Client\VKApiClient;
 use yii\base\Module;
 use yii\console\Controller;
@@ -40,7 +41,7 @@ class VkController extends Controller
      */
     public function __construct(string $id, Module $module, array $config = [])
     {
-        $this->accessToken = \Yii::$app->params[self::SOURCE_TYPE]['accessToken'] ?? null;
+        $this->accessToken = \Yii::$app->params[VkUrbanSource::SOURCE_TYPE]['accessToken'] ?? null;
         if (!$this->accessToken) {
             echo 'Параметр accessToken не установлен.';
             return;
@@ -59,12 +60,12 @@ class VkController extends Controller
     {
         $vk = new VKApiClient();
         
-        $vkTag = TermTaxonomy::findOrCreate(self::SOURCE_TYPE);
+        $vkTag = TermTaxonomy::findOrCreate(VkUrbanSource::SOURCE_TYPE);
         
-        $period = \Yii::$app->params['period'] ?? self::MIN_DATE;
+        $period = \Yii::$app->params['period'] ?? VkUrbanSource::MIN_DATE;
         $minDate = strtotime("-$period days");
         
-        $sourceType = UrbanSourceType::findOne(['name' => self::SOURCE_TYPE]);
+        $sourceType = UrbanSourceType::findOne(['name' => VkUrbanSource::SOURCE_TYPE]);
         /** @var UrbanSource[] $urbanSources */
         $urbanSources = UrbanSource::findAll([
             'urban_source_type_id' => $sourceType->id,
@@ -113,14 +114,13 @@ class VkController extends Controller
                     continue;
                 }
                 
-                $post->post_content .= "\n\n" . self::URL_VK_WALL . "{$item['owner_id']}_{$item['id']}";
-                $post->post_modified = date(\Yii::$app->formatter->datetimeFormat, time());
+                $post->addLink(self::URL_VK_WALL . "{$item['owner_id']}_{$item['id']}");
                 
                 if ($post->save()) {
                     $post->addTag($vkTag);
                     $post->addTag($domain);
                     
-                    $this->updateLatestRecord($urbanSource, $item['date']);
+                    $urbanSource->updateLatestRecord($item['date']);
                     
                     $this->stdout("Новый пост: id='{$item['id']}' date='{$post->post_date}' "
                         . "\"" . mb_substr($post->post_content, 0, 50) . "...\"" . PHP_EOL);
@@ -143,32 +143,18 @@ class VkController extends Controller
         return ExitCode::OK;
     }
     
-    /**
-     * @param UrbanSource $urbanSource
-     * @param int $date
-     */
-    private function updateLatestRecord(UrbanSource $urbanSource, int $date): void
-    {
-        // latest_record stores timestamp (as a string) in case of VK source
-        $latestRecordTimestamp = (int) $urbanSource->latest_record;
-        if ($latestRecordTimestamp < $date) {
-            $urbanSource->latest_record = (string) $date;
-        }
-        $urbanSource->save();
-    }
-    
     private function fillPostData(Post $post, array $item): void
     {
         // TODO: нужна более лучшая и полная логика извлечения контента (ТЗ)
         if ($item['text']) {
-            $post->post_title = mb_substr($item['text'], 0, self::TITLE_LENGTH);
-            $post->post_content = $item['text'];
-            $post->post_date = date(\Yii::$app->formatter->datetimeFormat, $item['date']);
+            $post->setTitle($item['text']);
+            $post->setContent($item['text']);
+            $post->setDate($item['date']);
         } elseif (!empty($item['copy_history'])) {
             $copyHistory = reset($item['copy_history']);
-            $post->post_title = mb_substr($copyHistory['text'], 0, self::TITLE_LENGTH);
-            $post->post_content = $copyHistory['text'];
-            $post->post_date = date(\Yii::$app->formatter->datetimeFormat, $item['date']);
+            $post->setTitle($copyHistory['text']);
+            $post->setContent($copyHistory['text']);
+            $post->setDate($item['date']);
         }/* elseif (!empty($item['attachments'][0]['link'])) {
             $itemLink = $item['attachments'][0]['link'];
         }*/

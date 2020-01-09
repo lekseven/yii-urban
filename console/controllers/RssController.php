@@ -3,6 +3,7 @@
 namespace console\controllers;
 
 use console\models\Post;
+use console\models\RssUrbanSource;
 use console\models\TermTaxonomy;
 use console\models\UrbanSource;
 use console\models\UrbanSourceType;
@@ -18,25 +19,19 @@ use yii\helpers\Console;
  */
 class RssController extends Controller
 {
-    const SOURCE_TYPE = 'rss';
-    
-    // Кол-во дней, в рамках которых выполняется поиск новых записей
-    const MIN_DATE = 5;
-    
     public final function actionIndex(): int
     {
-        $sourceTypeTag = TermTaxonomy::findOrCreate(self::SOURCE_TYPE);
+        $sourceTypeTag = TermTaxonomy::findOrCreate(RssUrbanSource::SOURCE_TYPE);
     
-        $period = \Yii::$app->params['period'] ?? self::MIN_DATE;
+        $period = \Yii::$app->params['period'] ?? RssUrbanSource::MIN_DATE;
         $minDate = strtotime("-$period days");
     
-        $sourceType = UrbanSourceType::findOne(['name' => self::SOURCE_TYPE]);
+        $sourceType = UrbanSourceType::findOne(['name' => RssUrbanSource::SOURCE_TYPE]);
         /** @var UrbanSource[] $urbanSources */
         $urbanSources = UrbanSource::findAll([
             'urban_source_type_id' => $sourceType->id,
             'active' => 1,
         ]);
-    
         foreach ($urbanSources as $urbanSource) {
             $this->stdout("Источник: {$urbanSource->url} [{$sourceType->name}]",
                 Console::BOLD, Console::BG_CYAN);
