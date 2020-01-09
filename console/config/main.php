@@ -33,9 +33,9 @@ return [
         'formatter' => [
             'class'    => 'yii\i18n\Formatter',
             'timeZone' => 'UTC',
-            'dateFormat' => 'Y-m-d',
-            'datetimeFormat' => 'Y-m-d H:i:s',
-            'timeFormat' => 'H:i:s',
+            'dateFormat' => 'php:Y-m-d',
+            'datetimeFormat' => 'php:Y-m-d H:i:s',
+            'timeFormat' => 'php:H:i:s',
             'nullDisplay' => '',
         ],
     ],

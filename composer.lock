@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "57965983d1af7cf471850fada12d92f9",
+    "content-hash": "cc9acf737ba3cb93c4743e0bcb04a9a6",
     "packages": [
         {
             "name": "bower-asset/bootstrap",
@@ -166,6 +166,49 @@
                 "markdown-extra"
             ],
             "time": "2018-12-10T09:41:35+00:00"
+        },
+        {
+            "name": "dg/rss-php",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/dg/rss-php.git",
+                "reference": "f71c0edffa00cbfaa9c337e96025ceec52fe55ba"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/dg/rss-php/zipball/f71c0edffa00cbfaa9c337e96025ceec52fe55ba",
+                "reference": "f71c0edffa00cbfaa9c337e96025ceec52fe55ba",
+                "shasum": ""
+            },
+            "require": {
+                "ext-simplexml": "*",
+                "php": ">=5.3"
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "src/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD-3-Clause"
+            ],
+            "authors": [
+                {
+                    "name": "David Grudl",
+                    "homepage": "https://davidgrudl.com"
+                }
+            ],
+            "description": "RSS & Atom Feeds for PHP is a very small and easy-to-use library for consuming an RSS and Atom feed",
+            "homepage": "https://github.com/dg/rss-php",
+            "keywords": [
+                "atom",
+                "feed",
+                "rss"
+            ],
+            "time": "2019-11-23T12:27:27+00:00"
         },
         {
             "name": "doctrine/lexer",
@@ -4143,6 +4186,7 @@
     "minimum-stability": "dev",
     "stability-flags": {
         "vkcom/vk-php-sdk": 20,
+        "dg/rss-php": 20,
         "codeception/codeception": 20
     },
     "prefer-stable": false,

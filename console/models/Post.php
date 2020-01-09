@@ -2,10 +2,8 @@
 
 namespace console\models;
 
-use Yii;
 use yii\base\Exception;
 use yii\base\InvalidArgumentException;
-use yii\behaviors\TimestampBehavior;
 
 /**
  * This is the model class for table "wp_posts".
@@ -38,24 +36,14 @@ class Post extends \yii\db\ActiveRecord
 {
     const STATUS_DRAFT = 'draft';
     
+    const TITLE_LENGTH = 54;
+    
     /**
      * {@inheritdoc}
      */
     public static function tableName()
     {
         return 'wp_posts';
-    }
-    
-    public function behaviors()
-    {
-        return [
-            [
-                'class' => TimestampBehavior::class,
-                'createdAtAttribute' => 'post_modified',
-                'updatedAtAttribute' => 'post_modified',
-                'value' => date(Yii::$app->formatter->datetimeFormat),
-            ],
-        ];
     }
     
     /**
@@ -67,6 +55,8 @@ class Post extends \yii\db\ActiveRecord
             [['post_title', 'post_content', 'post_date'], 'required'],
             
             [['post_author', 'post_parent', 'menu_order', 'comment_count'], 'integer'],
+            
+            [['post_date'], 'datetime', 'format' => \Yii::$app->formatter->datetimeFormat],
             
             [['to_ping', 'pinged', 'post_content_filtered', 'post_excerpt', 'post_title'], 'default', 'value' => ''],
             [['post_status'], 'default', 'value' => self::STATUS_DRAFT],
@@ -82,6 +72,8 @@ class Post extends \yii\db\ActiveRecord
     public function beforeSave($insert)
     {
         $this->post_date_gmt = $this->post_date;
+    
+        $this->post_modified = \Yii::$app->formatter->asDatetime(time());
         $this->post_modified_gmt = $this->post_modified;
         
         return parent::beforeSave($insert);
@@ -139,6 +131,33 @@ class Post extends \yii\db\ActiveRecord
         $termRelationship->term_taxonomy_id = $termTaxonomy->term_taxonomy_id;
         if (!$termRelationship->save()) {
             throw new Exception();
+        }
+    }
+    
+    public function setTitle(string $title): void
+    {
+        $this->post_title = mb_substr($title, 0, self::TITLE_LENGTH);
+    }
+    
+    public function setContent(string $content): void
+    {
+        $this->post_content = $content;
+    }
+    
+    public function setDate($date): void
+    {
+        if (is_int($date)) {
+            $this->post_date = \Yii::$app->formatter->asDatetime($date);
+        } else {
+            $this->post_date = $date;
+        }
+    }
+    
+    public function addLink(string $url): void
+    {
+        $url = trim($url);
+        if ($url) {
+            $this->post_content .= "\n\n" . $url;
         }
     }
 }

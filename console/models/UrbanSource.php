@@ -18,6 +18,9 @@ use yii\behaviors\TimestampBehavior;
  */
 class UrbanSource extends \yii\db\ActiveRecord
 {
+    // Кол-во дней, в рамках которых выполняется поиск новых записей
+    const MIN_DATE = 5;
+    
     /**
      * {@inheritdoc}
      */
@@ -74,5 +77,14 @@ class UrbanSource extends \yii\db\ActiveRecord
     public function fields()
     {
         return parent::fields();
+    }
+    
+    public function updateLatestRecord(int $date): void
+    {
+        $latestRecordTimestamp = (int) $this->latest_record;
+        if ($latestRecordTimestamp < $date) {
+            $this->latest_record = (string) $date;
+        }
+        $this->save();
     }
 }
