@@ -58,7 +58,7 @@ class RssController extends Controller
     
                 $post = new Post();
                 $post->setTitle($item->title);
-                $post->setContent($item->description);
+                $post->setContent($item->description ?? $item->{'content:encoded'});
                 $post->setDate($itemPubDate);
                 $post->addLink($item->link);
                 

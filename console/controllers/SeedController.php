@@ -37,12 +37,12 @@ class SeedController extends Controller
     public function actionSources()
     {
         $sourceFiles = [
-            'vk' => 'vk_groups.txt',
+            'vk' => 'vk.txt',
             'rss' => 'rss.txt',
         ];
     
         foreach ($sourceFiles as $sourceTypeName => $sourceFile) {
-            $fileContent = file_get_contents(__DIR__ . "/../../$sourceFile");
+            $fileContent = file_get_contents(__DIR__ . "/../../data/$sourceFile");
             if (!$fileContent) {
                 echo "File $sourceFile is empty. Skipping.\n";
                 continue;
