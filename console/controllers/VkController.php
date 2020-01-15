@@ -24,7 +24,6 @@ class VkController extends Controller
     const SOURCE_TYPE = 'vk';
     
     const URL_VK_WALL = 'https://vk.com/wall';
-    const URL_VK_HOME = 'https://vk.com/';
     
     const TITLE_LENGTH = 54;
     
@@ -72,7 +71,7 @@ class VkController extends Controller
             'active' => 1,
         ]);
         foreach ($urbanSources as $urbanSource) {
-            $domain = str_replace(self::URL_VK_HOME, '', $urbanSource->url);
+            $domain = preg_replace("/https?:\/\/vk\.com\//i", '', $urbanSource->url);
             
             $this->stdout("Источник: {$domain} [{$sourceType->name}]",
                 Console::BOLD, Console::BG_CYAN);
