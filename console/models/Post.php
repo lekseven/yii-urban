@@ -141,9 +141,13 @@ class Post extends \yii\db\ActiveRecord
     
     public function setContent(string $content): void
     {
-        $this->post_content = $content;
+        $this->post_content = trim($content);
     }
     
+    /**
+     * @param string|int $date
+     * @throws \yii\base\InvalidConfigException
+     */
     public function setDate($date): void
     {
         if (is_int($date)) {

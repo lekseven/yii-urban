@@ -5,8 +5,6 @@ namespace console\controllers;
 use console\models\Post;
 use console\models\RssUrbanSource;
 use console\models\TermTaxonomy;
-use console\models\UrbanSource;
-use console\models\UrbanSourceType;
 use yii\console\Controller;
 use yii\console\ExitCode;
 use yii\helpers\Console;
@@ -19,6 +17,14 @@ use yii\helpers\Console;
  */
 class RssController extends Controller
 {
+    use SourceArguments;
+    
+    /**
+     * @return int
+     * @throws \yii\base\Exception
+     * @throws \yii\base\InvalidConfigException
+     * @throws \yii\web\NotFoundHttpException
+     */
     public final function actionIndex(): int
     {
         $sourceTypeTag = TermTaxonomy::findOrCreate(RssUrbanSource::SOURCE_TYPE);
@@ -26,14 +32,9 @@ class RssController extends Controller
         $period = \Yii::$app->params['period'] ?? RssUrbanSource::MIN_DATE;
         $minDate = strtotime("-$period days");
     
-        $sourceType = UrbanSourceType::findOne(['name' => RssUrbanSource::SOURCE_TYPE]);
-        /** @var UrbanSource[] $urbanSources */
-        $urbanSources = UrbanSource::findAll([
-            'urban_source_type_id' => $sourceType->id,
-            'active' => 1,
-        ]);
+        $urbanSources = $this->fetchSources(RssUrbanSource::SOURCE_TYPE);
         foreach ($urbanSources as $urbanSource) {
-            $this->stdout("Источник: {$urbanSource->url} [{$sourceType->name}]",
+            $this->stdout("Источник: {$urbanSource->url} [" . RssUrbanSource::SOURCE_TYPE . "]",
                 Console::BOLD, Console::BG_CYAN);
             echo PHP_EOL;
             

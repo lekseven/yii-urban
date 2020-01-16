@@ -4,8 +4,6 @@ namespace console\controllers;
 
 use console\models\Post;
 use console\models\TermTaxonomy;
-use console\models\UrbanSource;
-use console\models\UrbanSourceType;
 use console\models\VkUrbanSource;
 use VK\Client\VKApiClient;
 use yii\base\Module;
@@ -21,14 +19,9 @@ use yii\helpers\Console;
  */
 class VkController extends Controller
 {
-    const SOURCE_TYPE = 'vk';
+    use SourceArguments;
     
     const URL_VK_WALL = 'https://vk.com/wall';
-    
-    const TITLE_LENGTH = 54;
-    
-    // Кол-во дней, в рамках которых выполняется поиск новых записей
-    const MIN_DATE = 5;
     
     private $accessToken;
     
@@ -54,6 +47,7 @@ class VkController extends Controller
      *
      * @return int
      * @throws \yii\base\Exception
+     * @throws \yii\web\NotFoundHttpException
      */
     public final function actionIndex(): int
     {
@@ -64,16 +58,11 @@ class VkController extends Controller
         $period = \Yii::$app->params['period'] ?? VkUrbanSource::MIN_DATE;
         $minDate = strtotime("-$period days");
         
-        $sourceType = UrbanSourceType::findOne(['name' => VkUrbanSource::SOURCE_TYPE]);
-        /** @var UrbanSource[] $urbanSources */
-        $urbanSources = UrbanSource::findAll([
-            'urban_source_type_id' => $sourceType->id,
-            'active' => 1,
-        ]);
+        $urbanSources = $this->fetchSources(VkUrbanSource::SOURCE_TYPE);
         foreach ($urbanSources as $urbanSource) {
             $domain = preg_replace("/https?:\/\/vk\.com\//i", '', $urbanSource->url);
             
-            $this->stdout("Источник: {$domain} [{$sourceType->name}]",
+            $this->stdout("Источник: {$domain} [" . VkUrbanSource::SOURCE_TYPE . "]",
                 Console::BOLD, Console::BG_CYAN);
             echo PHP_EOL;
             
