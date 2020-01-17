@@ -5,7 +5,6 @@ namespace console\controllers;
 use console\models\Post;
 use console\models\RssUrbanSource;
 use console\models\TermTaxonomy;
-use yii\console\Controller;
 use yii\console\ExitCode;
 use yii\helpers\Console;
 
@@ -15,9 +14,11 @@ use yii\helpers\Console;
  * Class RssController
  * @package console\controllers
  */
-class RssController extends Controller
+class RssController extends BaseController
 {
     use SourceArguments;
+    
+    public string $logCategory = RssUrbanSource::SOURCE_TYPE;
     
     /**
      * @return int
@@ -34,15 +35,14 @@ class RssController extends Controller
     
         $urbanSources = $this->fetchSources(RssUrbanSource::SOURCE_TYPE);
         foreach ($urbanSources as $urbanSource) {
-            $this->stdout("Источник: {$urbanSource->url} [" . RssUrbanSource::SOURCE_TYPE . "]",
+            $this->logInfo("Источник: {$urbanSource->url} [" . RssUrbanSource::SOURCE_TYPE . "]",
                 Console::BOLD, Console::BG_CYAN);
-            echo PHP_EOL;
             
             $feed = null;
             try {
                 $feed = \Feed::loadRss($urbanSource->url);
             } catch (\FeedException $e) {
-                $this->stderr($e->getMessage() . PHP_EOL, Console::BOLD, Console::FG_RED);
+                $this->logError($e->getMessage());
                 continue;
             }
             
@@ -69,23 +69,22 @@ class RssController extends Controller
                     
                     $urbanSource->updateLatestRecord($itemPubDate);
     
-                    $this->stdout("Новый пост: id='{$item->link}' date='{$post->post_date}' "
-                        . "\"{$post->post_title}...\"" . PHP_EOL);
+                    $this->logInfo("Новый пост: id='{$item->link}' date='{$post->post_date}' \"{$post->post_title}...\"");
                 } else {
-                    echo "Item:\n";
-                    $this->stderr(print_r($item, true), Console::BOLD, Console::FG_RED);
+                    $this->logError("Item:");
+                    $this->logError(print_r($item, true));
                     foreach ($post->getErrorSummary(true) as $message) {
-                        $this->stderr($message . PHP_EOL, Console::BOLD, Console::FG_RED);
+                        $this->logError($message);
                     }
                 }
             }
     
             $pause = rand(1, 10);
-            $this->stdout("Пауза $pause сек.\n", Console::FG_YELLOW);
+            $this->logInfo("Пауза $pause сек.", Console::FG_YELLOW);
             sleep($pause);
         }
     
-        $this->stdout("Завершено.\n", Console::FG_YELLOW);
+        $this->logInfo("Завершено.", Console::FG_YELLOW);
         
         return ExitCode::OK;
     }

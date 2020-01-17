@@ -7,7 +7,6 @@ use console\models\TermTaxonomy;
 use console\models\VkUrbanSource;
 use VK\Client\VKApiClient;
 use yii\base\Module;
-use yii\console\Controller;
 use yii\console\ExitCode;
 use yii\helpers\Console;
 
@@ -17,13 +16,15 @@ use yii\helpers\Console;
  * Class VkController
  * @package console\controllers
  */
-class VkController extends Controller
+class VkController extends BaseController
 {
     use SourceArguments;
     
     const URL_VK_WALL = 'https://vk.com/wall';
     
     private $accessToken;
+    
+    public string $logCategory = VkUrbanSource::SOURCE_TYPE;
     
     /**
      * VkController constructor.
@@ -33,9 +34,11 @@ class VkController extends Controller
      */
     public function __construct(string $id, Module $module, array $config = [])
     {
+        $this->logCategory = VkUrbanSource::SOURCE_TYPE;
+        
         $this->accessToken = \Yii::$app->params[VkUrbanSource::SOURCE_TYPE]['accessToken'] ?? null;
         if (!$this->accessToken) {
-            echo 'Параметр accessToken не установлен.';
+            $this->logError('Параметр accessToken не установлен.');
             return;
         }
         
@@ -62,9 +65,8 @@ class VkController extends Controller
         foreach ($urbanSources as $urbanSource) {
             $domain = preg_replace("/https?:\/\/vk\.com\//i", '', $urbanSource->url);
             
-            $this->stdout("Источник: {$domain} [" . VkUrbanSource::SOURCE_TYPE . "]",
+            $this->logInfo("Источник: {$domain} [" . VkUrbanSource::SOURCE_TYPE . "]",
                 Console::BOLD, Console::BG_CYAN);
-            echo PHP_EOL;
             
             $response = null;
             try {
@@ -73,14 +75,14 @@ class VkController extends Controller
                     'filter' => 'owner',
                 ]);
             } catch (\Exception $exception) {
-                $this->stderr(print_r($urbanSource->attributes, true), Console::BOLD, Console::FG_RED);
-                $this->stderr($exception->getMessage() . PHP_EOL, Console::BOLD, Console::FG_RED);
+                $this->logError(print_r($urbanSource->attributes, true));
+                $this->logError($exception->getMessage());
                 
                 continue;
             }
     
             if (!isset($response['items'])) {
-                $this->stderr(print_r($response, true), Console::FG_RED);
+                $this->logError(print_r($response, true));
                 
                 continue;
             }
@@ -110,23 +112,22 @@ class VkController extends Controller
                     
                     $urbanSource->updateLatestRecord($item['date']);
                     
-                    $this->stdout("Новый пост: id='{$item['id']}' date='{$post->post_date}' "
-                        . "\"{$post->post_title}...\"" . PHP_EOL);
+                    $this->logInfo("Новый пост: id='{$item['id']}' date='{$post->post_date}' \"{$post->post_title}...\"");
                 } else {
-                    echo "Item:\n";
-                    $this->stderr(print_r($item, true), Console::BOLD, Console::FG_RED);
+                    $this->logError("Item:");
+                    $this->logError(print_r($item, true));
                     foreach ($post->getErrorSummary(true) as $message) {
-                        $this->stderr($message . PHP_EOL, Console::BOLD, Console::FG_RED);
+                        $this->logError($message);
                     }
                 }
             }
             
             $pause = rand(1, 10);
-            $this->stdout("Пауза $pause сек.\n", Console::BOLD, Console::FG_YELLOW);
+            $this->logInfo("Пауза $pause сек.", Console::FG_YELLOW);
             sleep($pause);
         }
     
-        $this->stdout("Завершено.\n", Console::BOLD, Console::FG_YELLOW);
+        $this->logInfo("Завершено.", Console::FG_YELLOW);
         
         return ExitCode::OK;
     }

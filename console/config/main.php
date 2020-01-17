@@ -28,6 +28,16 @@ return [
                     'class' => 'yii\log\FileTarget',
                     'levels' => ['error', 'warning'],
                 ],
+                [
+                    'class' => 'yii\log\FileTarget',
+                    'categories' => ['vk'],
+                    'logFile' => '@console/runtime/logs/vk.log',
+                ],
+                [
+                    'class' => 'yii\log\FileTarget',
+                    'categories' => ['rss'],
+                    'logFile' => '@console/runtime/logs/rss.log',
+                ],
             ],
         ],
         'formatter' => [
