@@ -21,6 +21,8 @@ class RssController extends BaseController
     public string $logCategory = RssUrbanSource::SOURCE_TYPE;
     
     /**
+     * Получить новые посты
+     *
      * @return int
      * @throws \yii\base\Exception
      * @throws \yii\base\InvalidConfigException
