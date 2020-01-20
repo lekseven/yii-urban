@@ -23,6 +23,7 @@ return [
     ],
     'components' => [
         'log' => [
+            'flushInterval' => 1,
             'targets' => [
                 [
                     'class' => 'yii\log\FileTarget',
@@ -32,11 +33,13 @@ return [
                     'class' => 'yii\log\FileTarget',
                     'categories' => ['vk'],
                     'logFile' => '@console/runtime/logs/vk.log',
+                    'exportInterval' => 1,
                 ],
                 [
                     'class' => 'yii\log\FileTarget',
                     'categories' => ['rss'],
                     'logFile' => '@console/runtime/logs/rss.log',
+                    'exportInterval' => 1,
                 ],
             ],
         ],
