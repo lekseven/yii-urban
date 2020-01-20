@@ -11,18 +11,16 @@ abstract class BaseController extends Controller
 {
     public string $logCategory = 'application';
     
-    public function logError(string $message)
+    public function logError(string $message): void
     {
-        /** @var Controller $this */
         $this->stderr($message, Console::BOLD, Console::FG_RED);
         $this->stderr(PHP_EOL);
         
         \Yii::error($message, $this->logCategory);
     }
     
-    public function logInfo(string $message, ...$format)
+    public function logInfo(string $message, ...$format): void
     {
-        /** @var Controller $this */
         $this->stdout($message, ...$format);
         $this->stdout(PHP_EOL);
         
