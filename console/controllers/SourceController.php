@@ -7,6 +7,7 @@ use console\models\UrbanSourceType;
 use yii\console\Controller;
 use yii\console\ExitCode;
 use yii\helpers\Console;
+use yii\helpers\Json;
 
 
 /**
@@ -17,19 +18,33 @@ use yii\helpers\Console;
  */
 class SourceController extends Controller
 {
+    public bool $extend = false;
+    
+    public function options($actionID)
+    {
+        return [
+            'extend',
+        ];
+    }
+    
+    public function optionAliases()
+    {
+        return [
+            'e' => 'extend',
+        ];
+    }
+    
     /**
      * Показать все источники или только источники указанного типа
      *
      * @param string|null $sourceTypeName
      * @return int
+     * @throws \yii\base\InvalidConfigException
      */
     public final function actionIndex(?string $sourceTypeName = null): int
     {
         if ($sourceTypeName) {
             $sourceType = UrbanSourceType::findOne(['name' => $sourceTypeName]);
-    
-            $this->stdout("Источники: {$sourceType->name}", Console::BOLD, Console::BG_CYAN);
-            echo PHP_EOL;
         }
         
         // TODO: сделать возврат частями
@@ -42,7 +57,14 @@ class SourceController extends Controller
         }
         
         foreach ($sources as $source) {
-            $this->stdout(print_r($source->attributes, true));
+            if ($this->extend) {
+                $this->stdout(print_r($source->attributes, true));
+                $this->stdout(Json::encode($source->urbanSourceType->attributes));
+            } else {
+                $lastUpdate = \Yii::$app->formatter->asDatetime($source->updated_at);
+                $this->stdout("[{$source->urbanSourceType->name}] {$source->url} : $lastUpdate");
+            }
+            $this->stdout(PHP_EOL);
         }
         
         return ExitCode::OK;
@@ -115,7 +137,7 @@ class SourceController extends Controller
     }
     
     /**
-     * Сбросить сохраненные данные источника
+     * Сбросить время последнего обновления источника
      *
      * @param int $id
      */
@@ -125,7 +147,7 @@ class SourceController extends Controller
     }
     
     /**
-     * Сбросить сохраненные данные всех источников
+     * Сбросить время последнего обновления всех источников
      */
     public final function actionResetAll(): void
     {
