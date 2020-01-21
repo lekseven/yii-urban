@@ -62,7 +62,7 @@ class SourceController extends Controller
                 $this->stdout(Json::encode($source->urbanSourceType->attributes));
             } else {
                 $lastUpdate = \Yii::$app->formatter->asDatetime($source->updated_at);
-                $this->stdout("[{$source->urbanSourceType->name}] {$source->url} : $lastUpdate");
+                $this->stdout("[{$source->urbanSourceType->name}] $source->id : {$source->url} : $lastUpdate");
             }
             $this->stdout(PHP_EOL);
         }
