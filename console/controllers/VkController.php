@@ -18,8 +18,6 @@ use yii\helpers\Console;
  */
 class VkController extends BaseController
 {
-    use SourceArguments;
-    
     const URL_VK_WALL = 'https://vk.com/wall';
     
     private $accessToken;

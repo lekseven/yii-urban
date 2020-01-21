@@ -16,8 +16,6 @@ use yii\helpers\Console;
  */
 class RssController extends BaseController
 {
-    use SourceArguments;
-    
     public string $logCategory = RssUrbanSource::SOURCE_TYPE;
     
     /**
