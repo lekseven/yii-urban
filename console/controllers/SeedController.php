@@ -39,6 +39,7 @@ class SeedController extends Controller
         $sourceFiles = [
             'vk' => 'vk.txt',
             'rss' => 'rss.txt',
+            'youtube' => 'youtube.txt',
         ];
     
         foreach ($sourceFiles as $sourceTypeName => $sourceFile) {
