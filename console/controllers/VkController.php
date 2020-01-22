@@ -49,6 +49,7 @@ class VkController extends BaseController
      * @return int
      * @throws \yii\base\Exception
      * @throws \yii\web\NotFoundHttpException
+     * @throws \ReflectionException
      */
     public final function actionIndex(): int
     {
@@ -59,7 +60,7 @@ class VkController extends BaseController
         $period = \Yii::$app->params['period'] ?? VkUrbanSource::MIN_DATE;
         $minDate = strtotime("-$period days");
         
-        $urbanSources = $this->fetchSources(VkUrbanSource::SOURCE_TYPE);
+        $urbanSources = $this->fetchSources(VkUrbanSource::class);
         foreach ($urbanSources as $urbanSource) {
             $domain = preg_replace("/https?:\/\/vk\.com\//i", '', $urbanSource->url);
             

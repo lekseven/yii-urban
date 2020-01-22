@@ -6,6 +6,7 @@ namespace console\controllers;
 
 use console\models\UrbanSource;
 use console\models\UrbanSourceType;
+use yii\base\InvalidArgumentException;
 use yii\console\Controller;
 use yii\helpers\Console;
 use yii\web\NotFoundHttpException;
@@ -59,25 +60,31 @@ abstract class BaseController extends Controller
     }
     
     /**
-     * @param string|null $sourceTypeName
-     * @return UrbanSource[]
+     * @param string $class
+     * @return array
      * @throws NotFoundHttpException
+     * @throws \ReflectionException
      */
-    public function fetchSources(?string $sourceTypeName = null): array
+    public function fetchSources(string $class): array
     {
+        $reflection = new \ReflectionClass($class);
+        if (!$reflection->isSubclassOf(UrbanSource::class)) {
+            throw new InvalidArgumentException();
+        }
+        
         $urbanSources = [];
         
         if ($this->sourceId) {
-            $urbanSources = UrbanSource::findAll(['id' => $this->sourceId]);
+            $urbanSources = $class::findAll(['id' => $this->sourceId]);
         } elseif ($this->sourceUrl) {
-            $urbanSources = UrbanSource::findAll(['url' => $this->sourceUrl]);
-        } elseif ($sourceTypeName) {
-            $sourceType = UrbanSourceType::findOne(['name' => $sourceTypeName]);
+            $urbanSources = $class::findAll(['url' => $this->sourceUrl]);
+        } elseif ($class) {
+            $sourceType = UrbanSourceType::findOne(['name' => $class::SOURCE_TYPE]);
             if (!$sourceType) {
                 throw new NotFoundHttpException();
             }
             
-            $urbanSources = UrbanSource::findAll([
+            $urbanSources = $class::findAll([
                 'urban_source_type_id' => $sourceType->id,
                 'active' => 1,
             ]);

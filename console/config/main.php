@@ -41,6 +41,12 @@ return [
                     'logFile' => '@console/runtime/logs/rss.log',
                     'exportInterval' => 1,
                 ],
+                [
+                    'class' => 'yii\log\FileTarget',
+                    'categories' => ['youtube'],
+                    'logFile' => '@console/runtime/logs/youtube.log',
+                    'exportInterval' => 1,
+                ],
             ],
         ],
         'formatter' => [

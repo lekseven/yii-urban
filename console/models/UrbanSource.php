@@ -19,7 +19,7 @@ use yii\behaviors\TimestampBehavior;
 class UrbanSource extends \yii\db\ActiveRecord
 {
     // Кол-во дней, в рамках которых выполняется поиск новых записей
-    const MIN_DATE = 5;
+    const MIN_DATE = 7;
     
     /**
      * {@inheritdoc}

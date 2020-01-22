@@ -25,6 +25,7 @@ class RssController extends BaseController
      * @throws \yii\base\Exception
      * @throws \yii\base\InvalidConfigException
      * @throws \yii\web\NotFoundHttpException
+     * @throws \ReflectionException
      */
     public final function actionIndex(): int
     {
@@ -33,7 +34,7 @@ class RssController extends BaseController
         $period = \Yii::$app->params['period'] ?? RssUrbanSource::MIN_DATE;
         $minDate = strtotime("-$period days");
     
-        $urbanSources = $this->fetchSources(RssUrbanSource::SOURCE_TYPE);
+        $urbanSources = $this->fetchSources(RssUrbanSource::class);
         foreach ($urbanSources as $urbanSource) {
             $this->logInfo("Источник: {$urbanSource->url} [" . RssUrbanSource::SOURCE_TYPE . "]",
                 Console::BOLD, Console::BG_CYAN);
