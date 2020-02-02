@@ -10,20 +10,25 @@ use yii\db\Exception;
 
 class SeedController extends Controller
 {
+    const SOURCES = [
+        'vk',
+        'facebook',
+        'twitter',
+        'youtube',
+        'medium',
+        'telegram',
+        'zen',
+        'rss',
+    ];
+    
+    /**
+     * Seeds a predefined list of sources
+     *
+     * @return int
+     */
     public function actionIndex()
     {
-        $sources = [
-            'vk',
-            'facebook',
-            'twitter',
-            'youtube',
-            'medium',
-            'telegram',
-            'zen',
-            'rss',
-        ];
-        
-        foreach ($sources as $sourceName) {
+        foreach (self::SOURCES as $sourceName) {
             if (!UrbanSourceType::find()->where(['name' => $sourceName])->exists()) {
                 $sourceType = new UrbanSourceType();
                 $sourceType->name = $sourceName;
@@ -34,28 +39,33 @@ class SeedController extends Controller
         return ExitCode::OK;
     }
     
+    /**
+     * Seeds URLs from txt file to sources
+     *
+     * @return int
+     */
     public function actionSources()
     {
-        $sourceFiles = [
-            'vk' => 'vk.txt',
-            'rss' => 'rss.txt',
-            'youtube' => 'youtube.txt',
-        ];
-    
-        foreach ($sourceFiles as $sourceTypeName => $sourceFile) {
-            $fileContent = file_get_contents(__DIR__ . "/../../data/$sourceFile");
-            if (!$fileContent) {
-                echo "File $sourceFile is empty. Skipping.\n";
+        foreach (self::SOURCES as $sourceName) {
+            $seedFile = __DIR__ . "/../../data/$sourceName.txt";
+            if (!file_exists($seedFile)) {
+                echo "File $seedFile does not exists. Skipping.\n";
                 continue;
             }
     
-            $sourceType = UrbanSourceType::findOne(['name' => $sourceTypeName]);
+            $seedFileContent = file_get_contents($seedFile);
+            if (!$seedFileContent) {
+                echo "File $seedFile is empty. Skipping.\n";
+                continue;
+            }
+    
+            $sourceType = UrbanSourceType::findOne(['name' => $sourceName]);
             if (!$sourceType) {
-                echo "No source type $sourceTypeName found. Skipping.\n";
+                echo "No source type $sourceName found. Skipping.\n";
                 continue;
             }
     
-            $urls = explode("\n", $fileContent);
+            $urls = explode("\n", $seedFileContent);
             foreach ($urls as $url) {
                 if (!UrbanSource::find()->where(['url' => $url])->exists()) {
                     $source = new UrbanSource();
