@@ -83,6 +83,7 @@ class YoutubeController extends BaseController
             }
             
             $items = $response['items'];
+            $latestRecord = $urbanSource->latest_record;
             foreach ($items as $item) {
                 $videoId = $item['contentDetails']['upload']['videoId'] ?? null;
                 
@@ -110,7 +111,7 @@ class YoutubeController extends BaseController
                 }
     
                 $itemPublicationDate = strtotime($snippet['publishedAt']);
-                if ($itemPublicationDate <= $urbanSource->latest_record || $itemPublicationDate < $minDate) {
+                if ($itemPublicationDate <= $latestRecord || $itemPublicationDate < $minDate) {
                     break;
                 }
     

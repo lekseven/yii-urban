@@ -8,6 +8,7 @@ use console\models\UrbanSource;
 use console\models\UrbanSourceType;
 use yii\base\InvalidArgumentException;
 use yii\console\Controller;
+use yii\db\ActiveRecord;
 use yii\helpers\Console;
 use yii\web\NotFoundHttpException;
 
@@ -73,7 +74,8 @@ abstract class BaseController extends Controller
         }
         
         $urbanSources = [];
-        
+    
+        /** @var $class ActiveRecord */
         if ($this->sourceId) {
             $urbanSources = $class::findAll(['id' => $this->sourceId]);
         } elseif ($this->sourceUrl) {

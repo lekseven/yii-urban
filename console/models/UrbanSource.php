@@ -2,6 +2,7 @@
 
 namespace console\models;
 
+use yii\base\Exception;
 use yii\behaviors\TimestampBehavior;
 
 /**
@@ -86,5 +87,20 @@ class UrbanSource extends \yii\db\ActiveRecord
             $this->latest_record = (string) $date;
         }
         $this->save();
+    }
+    
+    public static function getMinDate(): int
+    {
+        $period = \Yii::$app->params['period'] ?? static::MIN_DATE;
+        return strtotime("-$period days");
+    }
+    
+    /**
+     * @return array
+     * @throws Exception
+     */
+    public function getUpdates(): array
+    {
+        throw new Exception();
     }
 }
