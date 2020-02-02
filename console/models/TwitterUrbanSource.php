@@ -13,18 +13,45 @@ class TwitterUrbanSource extends UrbanSource
     
     const API_URL = 'https://api.twitter.com';
     
-    const HEADERS = [
-        'authorization' => 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
-        'x-guest-token' => '1223954146920890368',
-    ];
-    
     private Client $client;
     
+    private array $headers = [];
+    
+    /**
+     * TwitterUrbanSource constructor.
+     * @param array $config
+     * @throws Exception
+     */
     public function __construct($config = [])
     {
         parent::__construct($config);
     
         $this->client = new Client();
+        
+        $this->initHeaders();
+    }
+    
+    /**
+     * @throws Exception
+     */
+    private function initHeaders()
+    {
+        $authToken = \Yii::$app->params['twitter']['authToken'] ?? null;
+        if (!$authToken) {
+            throw new Exception('Twitter authToken is not defined.');
+        }
+        $this->headers['authorization'] = "Bearer $authToken";
+    
+        $response = $this->client->post(self::API_URL . "/1.1/guest/activate.json", [
+            'headers' => $this->headers,
+        ]);
+        $guestToken = json_decode($response->getBody()->getContents(), true)['guest_token'] ?? null;
+        if (!$guestToken) {
+            if (!$authToken) {
+                throw new Exception('Twitter guest_token is invalid.');
+            }
+        }
+        $this->headers['x-guest-token'] = $guestToken;
     }
     
     /**
@@ -33,22 +60,22 @@ class TwitterUrbanSource extends UrbanSource
      */
     public function getUpdates(): array
     {
-        $userId = $this->getUserId($this->getUserScreenName());
+        $userId = $this->requestUserId($this->getUserScreenName());
         if (!$userId) {
             throw new Exception('User ID is not valid');
         }
         
-        return $this->getTweets($userId);
+        return $this->requestTweets($userId);
     }
     
     /**
      * @param string $screenName
      * @return int
      */
-    private function getUserId(string $screenName): int
+    private function requestUserId(string $screenName): int
     {
         $response = $this->client->get(self::API_URL . "/1.1/users/show.json?screen_name={$screenName}", [
-            'headers' => self::HEADERS,
+            'headers' => $this->headers,
         ]);
         
         return json_decode($response->getBody()->getContents(), true)['id'] ?? null;
@@ -59,10 +86,10 @@ class TwitterUrbanSource extends UrbanSource
      * @return array
      * @throws Exception
      */
-    private function getTweets(int $userId): array
+    private function requestTweets(int $userId): array
     {
         $response = $this->client->get(self::API_URL . "/2/timeline/profile/$userId.json", [
-            'headers' => self::HEADERS,
+            'headers' => $this->headers,
         ]);
         \Yii::debug($response);
         
