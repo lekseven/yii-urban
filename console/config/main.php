@@ -47,6 +47,12 @@ return [
                     'logFile' => '@console/runtime/logs/youtube.log',
                     'exportInterval' => 1,
                 ],
+                [
+                    'class' => 'yii\log\FileTarget',
+                    'categories' => ['twitter'],
+                    'logFile' => '@console/runtime/logs/twitter.log',
+                    'exportInterval' => 1,
+                ],
             ],
         ],
         'formatter' => [
