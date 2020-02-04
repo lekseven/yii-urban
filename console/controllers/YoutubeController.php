@@ -18,34 +18,7 @@ use yii\helpers\Console;
  */
 class YoutubeController extends BaseController
 {
-    const BASE_CHANNEL_URL = 'https://www.youtube.com/channel/';
-    
-    const BASE_WATCH_URL = 'https://www.youtube.com/watch?v=';
-    
     public string $logCategory = YoutubeUrbanSource::SOURCE_TYPE;
-    
-    public ?\Google_Client $client = null;
-    
-    public function __construct(string $id, Module $module, array $config = [])
-    {
-        $appName = \Yii::$app->params[YoutubeUrbanSource::SOURCE_TYPE]['appName'] ?? null;
-        if (!$appName) {
-            $this->logError('Параметр appName не установлен.');
-            return;
-        }
-    
-        $appKey = \Yii::$app->params[YoutubeUrbanSource::SOURCE_TYPE]['appKey'] ?? null;
-        if (!$appKey) {
-            $this->logError('Параметр appKey не установлен.');
-            return;
-        }
-        
-        $this->client = new \Google_Client();
-        $this->client->setApplicationName($appName);
-        $this->client->setDeveloperKey($appKey);
-        
-        parent::__construct($id, $module, $config);
-    }
     
     /**
      * Получить новые видео
@@ -57,32 +30,24 @@ class YoutubeController extends BaseController
      */
     public final function actionIndex(): int
     {
-        $service = new \Google_Service_YouTube($this->client);
         $sourceTag = TermTaxonomy::findOrCreate(YoutubeUrbanSource::SOURCE_TYPE);
-        
-        $period = \Yii::$app->params['period'] ?? YoutubeUrbanSource::MIN_DATE;
-        $minDate = strtotime("-$period days");
+        $minDate = YoutubeUrbanSource::getMinDate();
         
         /** @var YoutubeUrbanSource[] $urbanSources */
         $urbanSources = $this->fetchSources(YoutubeUrbanSource::class);
-        foreach ($urbanSources as $urbanSource) {
-            $channelId = str_replace(self::BASE_CHANNEL_URL, '', $urbanSource->url);
-            
+        foreach ($urbanSources as $urbanSource) {            
             $this->logInfo("Источник: $urbanSource->url [" . YoutubeUrbanSource::SOURCE_TYPE . "]",
                 Console::BOLD, Console::BG_CYAN);
             
             try {
-                $response = $service->activities->listActivities('contentDetails', [
-                    'channelId' => $channelId,
-                ]);
-            } catch (Google_Exception $exception) {
+                $items = $urbanSource->getUpdates();
+            } catch (\Exception $exception) {
                 $this->logError($exception->getMessage());
                 $this->logError(print_r($urbanSource->attributes, true));
     
                 continue;
             }
             
-            $items = $response['items'];
             $latestRecord = $urbanSource->latest_record;
             foreach ($items as $item) {
                 $videoId = $item['contentDetails']['upload']['videoId'] ?? null;
@@ -92,42 +57,38 @@ class YoutubeController extends BaseController
                 }
     
                 try {
-                    $response = $service->videos->listVideos('snippet', [
-                        'id' => $videoId,
-                    ]);
-                } catch (Google_Exception $exception) {
+                    $videoInfo = $urbanSource->getVideoInfo($videoId);
+                } catch (\Exception $exception) {
                     $this->logError($exception->getMessage());
                     $this->logError(print_r($urbanSource->attributes, true));
         
                     continue;
                 }
-    
-                $snippet = $response['items'][0]['snippet'] ?? null;
                 
-                if (!$snippet) {
-                    $this->logError($response);
-                    
+                if (!$videoInfo) {                    
                     continue;
                 }
     
-                $itemPublicationDate = strtotime($snippet['publishedAt']);
+                $itemPublicationDate = strtotime($videoInfo['publishedAt']);
                 if ($itemPublicationDate <= $latestRecord || $itemPublicationDate < $minDate) {
                     break;
                 }
     
                 $post = new Post();
-                $post->setTitle($snippet['title']);
-                $post->setContent($snippet['description']);
+                $post->setTitle($videoInfo['title']);
+                $post->setContent($videoInfo['description']);
                 $post->setDate($itemPublicationDate);
-                $post->addLink(self::BASE_WATCH_URL . $videoId);
+                
+                $videoLink = YoutubeUrbanSource::getVideoLink($videoId);
+                $post->addLink($videoLink);
                 
                 if ($post->save()) {
                     $post->addTag($sourceTag);
-                    $post->addTag($snippet['channelTitle']);
+                    $post->addTag($videoInfo['channelTitle']);
                     
                     $urbanSource->updateLatestRecord($itemPublicationDate);
                     
-                    $this->logInfo("Новое видео: id='{$videoId}' date='{$post->post_date}' \"{$post->post_title}...\"");
+                    $this->logInfo("Новое видео: $videoLink {$post->post_date} \"{$post->post_title}...\"");
                 } else {
                     $this->logError("Item:");
                     $this->logError(print_r($item, true));
