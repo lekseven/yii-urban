@@ -30,10 +30,9 @@ class RssController extends BaseController
     public final function actionIndex(): int
     {
         $sourceTypeTag = TermTaxonomy::findOrCreate(RssUrbanSource::SOURCE_TYPE);
+        $minDate = RssUrbanSource::getMinDate();
     
-        $period = \Yii::$app->params['period'] ?? RssUrbanSource::MIN_DATE;
-        $minDate = strtotime("-$period days");
-    
+        /** @var RssUrbanSource[] $urbanSources */
         $urbanSources = $this->fetchSources(RssUrbanSource::class);
         foreach ($urbanSources as $urbanSource) {
             $this->logInfo("Источник: {$urbanSource->url} [" . RssUrbanSource::SOURCE_TYPE . "]",
@@ -70,7 +69,7 @@ class RssController extends BaseController
                     
                     $urbanSource->updateLatestRecord($itemPubDate);
     
-                    $this->logInfo("Новый пост: id='{$item->link}' date='{$post->post_date}' \"{$post->post_title}...\"");
+                    $this->logInfo("Новый пост: {$item->link} {$post->post_date} \"{$post->post_title}...\"");
                 } else {
                     $this->logError("Item:");
                     $this->logError(print_r($item, true));
