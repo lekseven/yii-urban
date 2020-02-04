@@ -18,30 +18,7 @@ use yii\helpers\Console;
  */
 class VkController extends BaseController
 {
-    const URL_VK_WALL = 'https://vk.com/wall';
-    
-    private $accessToken;
-    
     public string $logCategory = VkUrbanSource::SOURCE_TYPE;
-    
-    /**
-     * VkController constructor.
-     * @param string $id
-     * @param Module $module
-     * @param array $config
-     */
-    public function __construct(string $id, Module $module, array $config = [])
-    {
-        $this->logCategory = VkUrbanSource::SOURCE_TYPE;
-        
-        $this->accessToken = \Yii::$app->params[VkUrbanSource::SOURCE_TYPE]['accessToken'] ?? null;
-        if (!$this->accessToken) {
-            $this->logError('Параметр accessToken не установлен.');
-            return;
-        }
-        
-        parent::__construct($id, $module, $config);
-    }
     
     /**
      * Получить новые посты
@@ -53,41 +30,28 @@ class VkController extends BaseController
      */
     public final function actionIndex(): int
     {
-        $vk = new VKApiClient();
-        
         $vkTag = TermTaxonomy::findOrCreate(VkUrbanSource::SOURCE_TYPE);
+        $minDate = VkUrbanSource::getMinDate();
         
-        $period = \Yii::$app->params['period'] ?? VkUrbanSource::MIN_DATE;
-        $minDate = strtotime("-$period days");
-        
+        /** @var VkUrbanSource[] $urbanSources */
         $urbanSources = $this->fetchSources(VkUrbanSource::class);
         foreach ($urbanSources as $urbanSource) {
-            $domain = preg_replace("/https?:\/\/vk\.com\//i", '', $urbanSource->url);
+            $domain = $urbanSource->getDomain();
             
             $this->logInfo("Источник: {$domain} [" . VkUrbanSource::SOURCE_TYPE . "]",
                 Console::BOLD, Console::BG_CYAN);
             
-            $response = null;
             try {
-                $response = $vk->wall()->get($this->accessToken, [
-                    'domain' => $domain,
-                    'filter' => 'owner',
-                ]);
+                $items = $urbanSource->getUpdates();
             } catch (\Exception $exception) {
                 $this->logError(print_r($urbanSource->attributes, true));
                 $this->logError($exception->getMessage());
                 
                 continue;
             }
-    
-            if (!isset($response['items'])) {
-                $this->logError(print_r($response, true));
-                
-                continue;
-            }
             
             $latestRecord = $urbanSource->latest_record;
-            foreach ($response['items'] as $item) {
+            foreach ($items as $item) {
                 if (!empty($item['is_pinned']) || !empty($item['marked_as_ads'])) {
                     continue;
                 }
@@ -103,7 +67,8 @@ class VkController extends BaseController
                     continue;
                 }
                 
-                $post->addLink(self::URL_VK_WALL . "{$item['owner_id']}_{$item['id']}");
+                $postLink = VkUrbanSource::getPostLink($item['owner_id'], $item['id']);
+                $post->addLink($postLink);
                 
                 if ($post->save()) {
                     $post->addTag($vkTag);
@@ -111,7 +76,7 @@ class VkController extends BaseController
                     
                     $urbanSource->updateLatestRecord($item['date']);
                     
-                    $this->logInfo("Новый пост: id='{$item['id']}' date='{$post->post_date}' \"{$post->post_title}...\"");
+                    $this->logInfo("Новый пост: $postLink {$post->post_date} \"{$post->post_title}...\"");
                 } else {
                     $this->logError("Item:");
                     $this->logError(print_r($item, true));
